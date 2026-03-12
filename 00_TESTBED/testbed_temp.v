@@ -57,21 +57,21 @@ reg [23:0] golden_mem [ 0:1024];
 // Write out waveform file
 initial begin
   $dumpfile("ipdc.vcd");
-  $dumpvars(0, ipdc);
+  $dumpvars( );
 end
 
 
 ipdc u_ipdc (
-	.i_clk(),
-	.i_rst_n(),
-	.i_op_valid(),
-	.i_op_mode(),
-        .o_op_ready(),
-	.i_in_valid(),
-	.i_in_data(),
-	.o_in_ready(),
-	.o_out_valid(),
-	.o_out_data()
+	.i_clk(clk),
+	.i_rst_n(rst_n),
+	.i_op_valid(op_valid),
+	.i_op_mode(op_mode),
+        .o_op_ready(op_ready),
+	.i_in_valid(in_valid),
+	.i_in_data(in_data),
+	.o_in_ready(in_ready),
+	.o_out_valid(out_valid),
+	.o_out_data(out_data)
 );
 
 // Read in test pattern and golden pattern

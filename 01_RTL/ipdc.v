@@ -16,7 +16,9 @@ module ipdc (                       //Don't modify interface
 // Wires and Registers
 // ---------------------------------------------------------------------------
 // ---- Add your own wires and registers here if needed ---- //
-
+reg get_data;
+reg out_valid;
+reg [23:0] out_data;
 
 
 // ---------------------------------------------------------------------------
@@ -37,7 +39,20 @@ module ipdc (                       //Don't modify interface
 // Sequential Block
 // ---------------------------------------------------------------------------
 // ---- Write your sequential block design here ---- //
+always @(posedge i_clk or negedge i_rst_n) begin
+        if (!i_rst_n) begin
+        	get_data <= 0;
+		out_valid <= 0;
+		out_data <= 0;
+	end else begin
+		get_data <= 0;
+                out_valid <= 0;
+                out_data <= 0;
+	end
+end
 
-
+assign o_in_ready = get_data;
+assign o_out_valid = out_valid;
+assign o_out_data = out_data;
 
 endmodule
