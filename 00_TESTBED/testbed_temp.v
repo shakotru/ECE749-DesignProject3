@@ -21,6 +21,7 @@
     `define INFILE "../00_TESTBED/PATTERN/indata0.dat"
     `define OPFILE "../00_TESTBED/PATTERN/opmode0.dat"
     `define GOLDEN "../00_TESTBED/PATTERN/golden0.dat"
+    `define DATA_NUM 21
 `endif
 
 `define SDFFILE "ipdc_syn.sdf"  // Modify your sdf file name
@@ -42,6 +43,7 @@ reg [23:0] indata_mem [ 0:255];
 reg [ 3:0] opmode_mem [ 0:63];
 reg [23:0] golden_mem [ 0:1024];
 
+integer i;
 
 // ==============================================
 // TODO: Declare regs and wires you need
@@ -95,6 +97,63 @@ end
 // ==============================================
 // TODO: Check pattern after process finish
 // ==============================================
+
+// Stage 1: Drive wires with regs
+reg tb_op_valid, tb_in_valid;
+reg [3:0] tb_op_mode;
+reg [7:0] img_cnt;    // 0..255 pixels
+reg [5:0] op_cnt;     // 0..63 ops
+reg [10:0] out_cnt;   // Output checker
+integer mismatch_cnt;
+
+
+assign op_valid = tb_op_valid;
+assign op_mode  = tb_op_mode;
+assign in_valid = tb_in_valid;
+assign in_data  = indata_mem[img_cnt];
+
+
+
+initial begin 
+	clk = 0;
+	rst_n = 1;
+	i = 0;
+	tb_op_valid = 0;
+	tb_in_valid = 0; 
+	tb_op_mode = 0;
+	img_cnt = 0;
+	op_cnt = 0;
+	out_cnt = 0;
+	mismatch_cnt = 0;
+
+	@(negedge rst_n);
+	@(posedge clk);
+	$display("TESTBENCH START");
+
+	while (op_cnt < `DATA_NUM) begin 
+		wait (op_ready ==1);
+		@(negedge clk);
+		tb_op_valid = 1;
+		tb_op_mode = opmode_mem[op_cnt];
+		op_cnt = op_cnt + 1;
+		$display("operation number [%0d]  = %b", op_cnt-1,  tb_op_mode);			
+		@(posedge clk);
+		tb_op_valid = 0;
+	end
+
+$display("all opcodes sent!!!");
+
+end
+
+
+//	while (i<`DATA_NUM) begin
+//		@(negedge clk);
+//		op_valid = $random;
+//		if (op_valid) begin
+//			op_mode = opmode_mem[i];
+//		end
+//
+//	end
 
 
 endmodule
