@@ -3,7 +3,7 @@
 `define HCYCLE      (`CYCLE/2)
 `define MAX_CYCLE   10000000
 `define RST_DELAY   2
-
+`define DATA_NUM 21
 
 `ifdef tb1
     `define INFILE "../00_TESTBED/PATTERN/indata1.dat"
@@ -21,7 +21,6 @@
     `define INFILE "../00_TESTBED/PATTERN/indata0.dat"
     `define OPFILE "../00_TESTBED/PATTERN/opmode0.dat"
     `define GOLDEN "../00_TESTBED/PATTERN/golden0.dat"
-    `define DATA_NUM 21
 `endif
 
 `define SDFFILE "ipdc_syn.sdf"  // Modify your sdf file name
@@ -101,18 +100,61 @@ end
 // Stage 1: Drive wires with regs
 reg tb_op_valid, tb_in_valid;
 reg [3:0] tb_op_mode;
-reg [7:0] img_cnt;    // 0..255 pixels
+reg [7:0] pix_cnt;    // 0..255 pixels
 reg [5:0] op_cnt;     // 0..63 ops
 reg [10:0] out_cnt;   // Output checker
 integer mismatch_cnt;
 
-
 assign op_valid = tb_op_valid;
 assign op_mode  = tb_op_mode;
-assign in_valid = tb_in_valid;
-assign in_data  = indata_mem[img_cnt];
+assign in_valid = in_ready;
+assign in_data  = indata_mem[pix_cnt];
+
+//keep count of how many pixels and imgs you read in - 256 pixels/img
+
+always @(posedge clk) begin 
+	if(!rst_n) begin
+		pix_cnt <= 0;
+	end else if (in_ready ) begin
+		if(pix_cnt < 256) begin 
+			pix_cnt <= pix_cnt + 1; //dont need to reset 
+		end else begin
+			$display("ERROR: pix_cnt overflow = %0d at time %0t", pix_cnt, $time);
+			$finish;
+		end
+		
+
+	end
+
+end
 
 
+//ASSERTIONS ACCORDING TO PROJ SPEC DOCUMENT!
+always @(*) begin
+
+ @(negedge rst_n);
+ @(posedge clk);
+
+  // i_in_valid with o_op_ready
+  if (in_valid && op_ready)
+    $display("VIOLATION: i_in_valid asserted with o_op_ready at %0t", $time);
+
+  // i_op_valid with o_op_ready  
+  if (op_valid && op_ready)
+    $display("VIOLATION: i_op_valid asserted with o_op_ready at %0t", $time);
+
+  // i_in_valid with o_out_valid
+  if (in_valid && out_valid)
+    $display("VIOLATION: i_in_valid asserted with o_out_valid at %0t", $time);
+
+  // i_op_valid with o_out_valid
+  if (op_valid && out_valid)
+    $display("VIOLATION: i_op_valid asserted with o_out_valid at %0t", $time);
+
+  // o_op_ready with o_out_valid
+  if (op_ready && out_valid)
+    $display("VIOLATION: o_op_ready asserted with o_out_valid at %0t", $time);
+end
 
 initial begin 
 	clk = 0;
@@ -121,7 +163,7 @@ initial begin
 	tb_op_valid = 0;
 	tb_in_valid = 0; 
 	tb_op_mode = 0;
-	img_cnt = 0;
+	pix_cnt = 0;
 	op_cnt = 0;
 	out_cnt = 0;
 	mismatch_cnt = 0;
@@ -141,19 +183,24 @@ initial begin
 		tb_op_valid = 0;
 	end
 
-$display("all opcodes sent!!!");
+	$display("==== ALL %0d OPCODES SENT! :) ===", `DATA_NUM);
+
+	@(posedge op_ready); 
+	$display("=== SIM DONE :( ===");
+	#100 $finish;
 
 end
 
-
-//	while (i<`DATA_NUM) begin
-//		@(negedge clk);
-//		op_valid = $random;
-//		if (op_valid) begin
-//			op_mode = opmode_mem[i];
-//		end
-//
-//	end
-
-
+//CHECKER! IS THE DESIGN RIGHT?
+always @(posedge clk) begin 
+	if (out_valid) begin
+		if (out_data !== golden_mem[out_cnt]) begin
+			$display("MISMATCH[%0d]: got %h, expected %h", out_cnt, out_data, golden_mem[out_cnt]);
+			mismatch_cnt = mismatch_cnt + 1;
+		end else begin
+			$display("MATCH[%0d]: got %h, expected %h", out_cnt, out_data, golden_mem[out_cnt]);
+		end
+		out_cnt = out_cnt + 1;
+	end
+end
 endmodule

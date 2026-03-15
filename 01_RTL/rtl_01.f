@@ -19,5 +19,7 @@
 
 // design files
 // -----------------------------------------------------------------------------
+./defines.v
 ./ipdc.v
 ./control_unit.v
+./display_engine.v
