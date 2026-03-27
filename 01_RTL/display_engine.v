@@ -35,7 +35,7 @@ always @(posedge i_clk or negedge i_rst_n) begin
 		o_display_done <= 0;
 		ox <= 0;
 		oy <= 0;
-		scale <= `SCALE_16;
+		scale <= `SCALE_4;
 		disp_col <= 0;
 		disp_row <= 0;
 
@@ -45,6 +45,7 @@ always @(posedge i_clk or negedge i_rst_n) begin
 
 
 	       if(i_op_valid) begin
+   	           $display("OP=%b ox=%d oy=%d scale=%d", i_op_mode, ox, oy, scale);
 		       case(i_op_mode) 
 			       `OP_SHIFT_RIGHT: if(ox+disp_max<15) ox <= ox+1;
 			       `OP_SHIFT_LEFT:  if((ox > 0)) ox <= ox-1;
@@ -55,8 +56,8 @@ always @(posedge i_clk or negedge i_rst_n) begin
 		       	       default: ;
 
 		       endcase
-		       disp_col <= 0;
-		       disp_row <= 0;
+		       //disp_col <= 0;
+		       //disp_row <= 0;
 	       end
 
 	       //this is where we actually output things to display them :)

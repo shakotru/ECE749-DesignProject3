@@ -28,6 +28,7 @@ reg         op_valid_lat;
 reg  [3:0]  op_mode_lat;
 reg         in_valid_lat;
 reg [23:0]  in_data_lat;
+reg get_data_lat;
 
 reg [23:0] img_storage [0:255];
 
@@ -35,6 +36,7 @@ localparam IDLE    = 3'd0;
 localparam LOADING = 3'd1;
 localparam READY   = 3'd2;
 localparam DISPLAY = 3'd3;
+localparam DONE = 3'd4;
 
 // control_unit + display_engine wires
 wire get_data_wire;
@@ -42,7 +44,7 @@ wire [7:0] read_addr;
 wire pix_valid, display_done;
 
 // ---------------------------------------------------------------------------
-// Input Sampler (negedge per spec)
+// Input Sampler (negedge per spec) --> REMOVE
 always @(negedge i_clk or negedge i_rst_n) begin
     if (!i_rst_n) begin
         op_valid_lat <= 0;
@@ -51,7 +53,8 @@ always @(negedge i_clk or negedge i_rst_n) begin
         in_data_lat  <= 0;
     end else begin
         op_valid_lat <= i_op_valid;
-        op_mode_lat  <= i_op_mode;
+	if (i_op_valid && get_op)
+        	op_mode_lat  <= i_op_mode;
         in_valid_lat <= i_in_valid;
         in_data_lat  <= i_in_data;
     end
@@ -85,7 +88,7 @@ end
 
 // ---------------------------------------------------------------------------
 // Main FSM (posedge)
-always @(posedge i_clk or negedge i_rst_n) begin
+always @(posedge i_clk or negedge i_rst_n) begin //keep posedge
     if (!i_rst_n) begin
         state      <= IDLE;
         out_valid  <= 0;
@@ -98,11 +101,19 @@ always @(posedge i_clk or negedge i_rst_n) begin
         out_data   <= 0;
         get_op     <= 0;
         display_en <= 0;
+	//get_data_lat <= get_data_wire;  // Register it
+
+
+
+
+
+
 
         case (state)
             IDLE: begin
-                get_op <= 1;
+                //get_op <= 1;
                 if (op_valid_lat) begin
+		    get_op <= 0; //we only want get_op when the previous op's output is finished displaying
                     if (get_data_wire) begin
                         state   <= LOADING;
                         pix_cnt <= 0;
@@ -128,7 +139,7 @@ always @(posedge i_clk or negedge i_rst_n) begin
             end
 
             READY: begin
-                get_op <= 1;
+                //get_op <= 1;
                 state  <= IDLE;
             end
 
@@ -140,13 +151,24 @@ always @(posedge i_clk or negedge i_rst_n) begin
                 end
                 if (display_done) begin
                     display_en <= 0;
-                    get_op     <= 1;
-                    state      <= IDLE;
+                    //get_op     <= 1;
+                    state      <= DONE;
                 end
             end
+	    DONE: begin 
+		state <= IDLE; //just a delay so the last pixel has a chance to display itself
+
+	    end
         endcase
     end
 end
+
+always @(posedge i_clk) begin
+    $display("t=%0t | state=%0d | get_op=%b | op_valid_lat=%b | op_mode_lat=%b | in_valid_lat=%b | pix_cnt=%0d | display_en=%b | pix_valid=%b | display_done=%b | out_valid=%b | out_data=%h",
+        $time, state, get_op, op_valid_lat, op_mode_lat, in_valid_lat, pix_cnt, display_en, pix_valid, display_done, out_valid, out_data);
+end
+
+
 
 // ---------------------------------------------------------------------------
 // Outputs
