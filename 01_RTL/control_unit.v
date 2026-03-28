@@ -47,9 +47,7 @@ always @* begin
 	end
 end
 
-always @(*) begin
-    $display("CU: op_valid=%b op_mode=%b get_data=%b", op_valid, op_mode, get_data);
-end
+
 
 endmodule
 
