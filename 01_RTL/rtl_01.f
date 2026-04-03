@@ -20,6 +20,8 @@
 // design files
 // -----------------------------------------------------------------------------
 ./defines.v
-./ipdc.v
+//./ipdc.v
+//./ipdc_test.v
+./ipdc_test_v2.v
 ./control_unit.v
 ./display_engine.v
