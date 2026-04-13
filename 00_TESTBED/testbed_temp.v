@@ -245,51 +245,6 @@ initial begin
 	$display("=== SIM DONE :( ===");
 	#100 $finish;
 end
-//reg send_pending;
-
-/*initial begin 
-	//clk = 0;
-	//rst_n = 1;
-	i = 0;
-	tb_op_valid = 0;
-	tb_in_valid = 0; 
-	tb_op_mode = 0;
-	pix_cnt = 0;
-	op_cnt = 0;
-	out_cnt = 0;
-	mismatch_cnt = 0;
-
-	@(negedge rst_n);
-	//@(posedge rst_n);
-	@(posedge clk);
-	$display("TESTBENCH START");
-
-	while (op_cnt < `DATA_NUM) begin
-	    @(negedge clk);
-
-
-	    if (op_ready) begin
-	    	//send_pending = 1'b1;
-	    	//@(negedge clk);
-		tb_op_valid = 1'b1;
-		tb_op_mode  = opmode_mem[op_cnt];
-		
-		$display("operation number [%0d] = %b", op_cnt, tb_op_mode);
-		@(negedge clk);
-		op_cnt = op_cnt + 1;
-		tb_op_valid = 1'b0;
-		//tb_op_mode  = 4'd0;
-	    end
-	end
-
-	$display("==== ALL %0d OPCODES SENT! :) ===", `DATA_NUM);
-
-	@(posedge op_ready); 
-	$display("=== SIM DONE :( ===");
-	#100 $finish;
-
-end*/
-
 
 
 //CHECKER! IS THE DESIGN RIGHT?

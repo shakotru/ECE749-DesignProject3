@@ -2,9 +2,6 @@
 
 module display_engine (
 
-//inputs: op_valid, op_mode, clk, rst_n
-//outputs: ox, oy, display_size
-
 input wire i_clk,
 input wire i_rst_n,
 
@@ -25,13 +22,29 @@ reg [1:0] scale;
 
 //REGS FOR BOUNDARY CHECK
 reg [3:0] disp_col, disp_row;
-wire [3:0] disp_max; //highest index in the display window, not strictly needed but will be helpful for boundary check
+reg [3:0] disp_max_r;
+reg [2:0] sample_step_r;
+reg [3:0] row_addr, col_addr;
 
-wire [2:0] sample_step; 
+assign o_sample_step = sample_step_r;
 
-assign sample_step = (scale == `SCALE_16) ? 3'd1 : (scale == `SCALE_8) ? 3'd2 : 3'd4;
-assign disp_max = (scale == `SCALE_16) ? 4'd3 : (scale == `SCALE_8) ? 4'd1 : 4'd0;
-assign o_sample_step = sample_step;
+always @ (*) begin
+	case (sample_step_r) 
+		3'd1: begin 
+			row_addr = oy + disp_row;
+			col_addr = ox + disp_col;
+		end 
+		3'd2: begin
+			row_addr = oy + {disp_row, 1'b0};
+			col_addr = ox + {disp_col, 1'b0};
+		end 
+		default: begin 
+			row_addr = oy + {disp_row, 2'b00};
+			col_addr = ox + {disp_col, 2'b00};
+		end 
+	endcase
+end 
+
 
 always @(posedge i_clk or negedge i_rst_n) begin
        if(!i_rst_n) begin
@@ -43,6 +56,8 @@ always @(posedge i_clk or negedge i_rst_n) begin
 		scale <= `SCALE_16;
 		disp_col <= 0;
 		disp_row <= 0;
+		disp_max_r <= 4'd3;
+		sample_step_r <= 3'd1;
 
        end else begin
 	       o_pix_valid <= 0;
@@ -52,12 +67,49 @@ always @(posedge i_clk or negedge i_rst_n) begin
 	       if(i_op_valid) begin
    	           //$display("OP=%b ox=%d oy=%d scale=%d", i_op_mode, ox, oy, scale);
 		       case(i_op_mode) 
-			       `OP_SHIFT_RIGHT: if(ox+disp_max*sample_step+sample_step<15) ox <= ox+sample_step;
-			       `OP_SHIFT_LEFT:  if((ox >= sample_step)) ox <= ox-sample_step;
-		       	       `OP_SHIFT_UP:    if((oy >= sample_step)) oy <= oy-sample_step;
-		       	       `OP_SHIFT_DOWN:  if((oy+disp_max*sample_step+sample_step)<=15) oy <= oy + sample_step;
-		       	       `OP_SCALE_DOWN:  if(scale > `SCALE_4) scale <= scale-1;
-		       	       `OP_SCALE_UP:    if(scale < `SCALE_16) scale <= scale+1;
+			       `OP_SHIFT_RIGHT: if(ox+disp_max_r*sample_step_r+sample_step_r<15) ox <= ox+sample_step_r;
+			       `OP_SHIFT_LEFT:  if((ox >= sample_step_r)) ox <= ox-sample_step_r;
+		       	       `OP_SHIFT_UP:    if((oy >= sample_step_r)) oy <= oy-sample_step_r;
+		       	       `OP_SHIFT_DOWN:  if((oy+disp_max_r*sample_step_r+sample_step_r)<=15) oy <= oy + sample_step_r;
+		       	       
+		       	       `OP_SCALE_DOWN: begin 
+		       	       		if(scale > `SCALE_4) begin  
+		       	       			scale <= scale-1;
+		       	       			case (scale - 1) 
+		       	       				`SCALE_16: begin 
+		       	       					sample_step_r <= 3'd1;
+		       	       					disp_max_r <= 4'd3;
+		       	       				end 
+		       	       				`SCALE_8: begin 
+		       	       					sample_step_r <= 3'd2;
+		       	       					disp_max_r <= 4'd1;
+		       	       				end 
+		       	       				default: begin 
+		       	       					sample_step_r <= 3'd4;
+		       	       					disp_max_r <= 4'd0;
+		       	       				end 
+		       	       			endcase
+		       	       		end 
+		       	       	end								
+		       	       `OP_SCALE_UP: begin
+		       	           if(scale < `SCALE_16) begin 
+		       	           		scale <= scale+1;
+		       	           		case (scale + 1'b1) 
+		       	           			`SCALE_16: begin 
+		       	           				sample_step_r <= 3'd1;
+		       	           				disp_max_r <= 4'd3;
+		       	           			end 
+		       	           			`SCALE_8: begin 
+		       	           				sample_step_r <= 3'd2;
+		       	           				disp_max_r <= 4'd1;
+		       	           			end 
+		       	           			default: begin 
+		       	           				sample_step_r <= 3'd4;
+		       	           				disp_max_r <= 4'd0;
+		       	           			end 
+		       	           		endcase
+		       	           	end 
+		       	        end 
 		       	       default: ;
 
 		       endcase
@@ -67,14 +119,15 @@ always @(posedge i_clk or negedge i_rst_n) begin
 
 	       //this is where we actually output things to display them :)
 	       if (i_display_en) begin
-		       o_read_addr <= (oy + disp_row * sample_step) * 16 + (ox + disp_col * sample_step);
+		       //o_read_addr <= (oy + disp_row * sample_step) * 16 + (ox + disp_col * sample_step);
+		       o_read_addr <= {row_addr, 4'd0} + col_addr;
 		       o_pix_valid <= 1;
 
 
 		       //reset everything to 0 once you finished display img
-		       if(disp_col == disp_max) begin
+		       if(disp_col == disp_max_r) begin
 			       	disp_col <= 0;
-				if(disp_row == disp_max) begin
+				if(disp_row == disp_max_r) begin
 					disp_row <= 0;
 					o_display_done <= 1;
 				end else begin
@@ -90,10 +143,6 @@ always @(posedge i_clk or negedge i_rst_n) begin
        end
 end
 
-/*always @(posedge i_clk) begin
-    $display("DE: op_valid=%b op_mode=%b ox=%d oy=%d disp_col=%d disp_row=%d read_addr=%d pix_valid=%b display_done=%b",
-        i_op_valid, i_op_mode, ox, oy, disp_col, disp_row, o_read_addr, o_pix_valid, o_display_done);
-end */
 
 
 endmodule
