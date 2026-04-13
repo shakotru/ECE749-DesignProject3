@@ -183,29 +183,6 @@ function automatic [7:0] get_b;
 	end 
 endfunction
 
-/*function automatic [7:0] median9;
-    input [7:0] a0,a1,a2,a3,a4,a5,a6,a7,a8;
-    reg [7:0] arr [0:8];
-    reg [7:0] tmp;
-    integer i,j;
-    begin
-        arr[0]=a0; arr[1]=a1; arr[2]=a2;
-        arr[3]=a3; arr[4]=a4; arr[5]=a5;
-        arr[6]=a6; arr[7]=a7; arr[8]=a8;
-
-        for (i=0; i<9; i=i+1) begin
-            for (j=i+1; j<9; j=j+1) begin
-                if (arr[j] < arr[i]) begin
-                    tmp    = arr[i];
-                    arr[i] = arr[j];
-                    arr[j] = tmp;
-                end
-            end
-        end
-
-        median9 = arr[4];
-    end
-endfunction*/
 
 function automatic [7:0] median9;
     input [7:0] a0,a1,a2,a3,a4,a5,a6,a7,a8;
